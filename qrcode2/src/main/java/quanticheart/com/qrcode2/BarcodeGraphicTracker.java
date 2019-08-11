@@ -16,6 +16,7 @@
 package quanticheart.com.qrcode2;
 
 import android.content.Context;
+
 import androidx.annotation.UiThread;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.Tracker;

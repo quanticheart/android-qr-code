@@ -20,10 +20,14 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+
 import androidx.annotation.RequiresPermission;
+
 import com.google.android.gms.common.images.Size;
 
 import java.io.IOException;
@@ -47,8 +51,19 @@ public class CameraSourcePreview extends ViewGroup {
 
         mSurfaceView = new SurfaceView(context);
         mSurfaceView.getHolder().addCallback(new SurfaceCallback());
+        mSurfaceView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(mSurfaceView);
+
+        WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        assert wm != null;
+        Display screensize = wm.getDefaultDisplay();
+        h = screensize.getHeight();
+        w = screensize.getWidth();
+
     }
+
+    int h = 0;
+    int w = 0;
 
     @RequiresPermission(Manifest.permission.CAMERA)
     public void start(CameraSource cameraSource) throws IOException, SecurityException {
@@ -111,7 +126,7 @@ public class CameraSourcePreview extends ViewGroup {
             try {
                 startIfReady();
             } catch (SecurityException se) {
-                Log.e(TAG,"Do not have permission to start the camera", se);
+                Log.e(TAG, "Do not have permission to start the camera", se);
             } catch (IOException e) {
                 Log.e(TAG, "Could not start camera source.", e);
             }
@@ -129,8 +144,8 @@ public class CameraSourcePreview extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        int width = 320;
-        int height = 240;
+        int width = 300;
+        int height = 200;
         if (mCameraSource != null) {
             Size size = mCameraSource.getPreviewSize();
             if (size != null) {
@@ -138,6 +153,9 @@ public class CameraSourcePreview extends ViewGroup {
                 height = size.getHeight();
             }
         }
+
+        Log.e("Tamanho", width + " : " + height);
+        Log.e("Tamanho", w + " : " + h);
 
         // Swap width and height sizes when in portrait, since it will be rotated 90 degrees
         if (isPortraitMode()) {
@@ -152,22 +170,22 @@ public class CameraSourcePreview extends ViewGroup {
 
         // Computes height and width for potentially doing fit width.
         int childWidth = layoutWidth;
-        int childHeight = (int)(((float) layoutWidth / (float) width) * height);
+        int childHeight = (int) (((float) layoutWidth / (float) width) * height);
 
         // If height is too tall using fit width, does fit height instead.
         if (childHeight > layoutHeight) {
             childHeight = layoutHeight;
-            childWidth = (int)(((float) layoutHeight / (float) height) * width);
+            childWidth = (int) (((float) layoutHeight / (float) height) * width);
         }
 
         for (int i = 0; i < getChildCount(); ++i) {
-            getChildAt(i).layout(0, 0, childWidth, childHeight);
+            getChildAt(i).layout(0, 0, w, h);
         }
 
         try {
             startIfReady();
         } catch (SecurityException se) {
-            Log.e(TAG,"Do not have permission to start the camera", se);
+            Log.e(TAG, "Do not have permission to start the camera", se);
         } catch (IOException e) {
             Log.e(TAG, "Could not start camera source.", e);
         }

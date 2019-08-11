@@ -1,7 +1,7 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
           package="quanticheart.com.qrcode2">
     <uses-permission android:name="android.permission.CAMERA"/>
-    <application>
+    <application android:supportsRtl="true" tools:replace="android:theme" android:theme="@style/AppThemeCamera">
         <activity android:name=".BarcodeCaptureActivity"/>
     </application>
 </manifest>

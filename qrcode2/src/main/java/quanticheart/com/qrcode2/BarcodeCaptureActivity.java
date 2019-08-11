@@ -34,28 +34,29 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
-import com.google.android.material.snackbar.Snackbar;
+
+import java.io.IOException;
+
 import quanticheart.com.qrcode2.ui.camera.CameraSource;
 import quanticheart.com.qrcode2.ui.camera.CameraSourcePreview;
 import quanticheart.com.qrcode2.ui.camera.GraphicOverlay;
-
-import java.io.IOException;
 
 /**
  * Activity for the multi-tracker app.  This app detects barcodes and displays the value with the
  * rear facing camera. During detection overlay graphics are drawn to indicate the position,
  * size, and ID of each barcode.
  */
-@SuppressWarnings({"JavadocReference", "unused"})
+@SuppressWarnings({"JavadocReference", "unused", "deprecation"})
 public final class BarcodeCaptureActivity extends AppCompatActivity implements BarcodeGraphicTracker.BarcodeUpdateListener {
     private static final String TAG = "Barcode-reader";
 
@@ -67,8 +68,17 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
 
     // constants used to pass extra data in the intent
     public static final String AutoFocus = "AutoFocus";
+    public static final String OnlyQRCode = "OnlyQRCode";
     public static final String UseFlash = "UseFlash";
     public static final String BarcodeObject = "Barcode";
+    public static final String BarcodeString = "BarcodeString";
+
+    //Only QRcode
+    private boolean returnQRCodeString = false;
+
+    //for result ok
+    public static final int QRCODE_SUCCESS = 1;
+    public static final int QRCODE_STRING_SUCCESS = 2;
 
     private CameraSource mCameraSource;
     private CameraSourcePreview mPreview;
@@ -92,6 +102,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         // read parameters from the intent used to launch the activity.
         boolean autoFocus = getIntent().getBooleanExtra(AutoFocus, false);
         boolean useFlash = getIntent().getBooleanExtra(UseFlash, false);
+        returnQRCodeString = getIntent().getBooleanExtra(OnlyQRCode, false);
 
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
@@ -105,9 +116,9 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         gestureDetector = new GestureDetector(this, new CaptureGestureListener());
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
 
-        Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
-                Snackbar.LENGTH_LONG)
-                .show();
+//        Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
+//                Snackbar.LENGTH_LONG)
+//                .show();
     }
 
     /**
@@ -137,10 +148,10 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         };
 
         findViewById(R.id.topLayout).setOnClickListener(listener);
-        Snackbar.make(mGraphicOverlay, R.string.permission_camera_rationale,
-                Snackbar.LENGTH_INDEFINITE)
-                .setAction(R.string.ok, listener)
-                .show();
+//        Snackbar.make(mGraphicOverlay, R.string.permission_camera_rationale,
+//                Snackbar.LENGTH_INDEFINITE)
+//                .setAction(R.string.ok, listener)
+//                .show();
     }
 
     @Override
@@ -352,10 +363,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         }
 
         if (best != null) {
-            Intent data = new Intent();
-            data.putExtra(BarcodeObject, best);
-            setResult(CommonStatusCodes.SUCCESS, data);
-            finish();
+            callbackIntent(best);
             return true;
         }
         return false;
@@ -425,11 +433,22 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
     @Override
     public void onBarcodeDetected(Barcode barcode) {
         //do something with barcode data returned
+        callbackIntent(barcode);
+    }
+
+    private void callbackIntent(Barcode barcode) {
+
         Point[] p = barcode.cornerPoints;
         Log.e("Code QRCode", barcode.displayValue);
         Intent data = new Intent();
-        data.putExtra(BarcodeObject, barcode);
-        setResult(CommonStatusCodes.SUCCESS, data);
+        if (returnQRCodeString) {
+            data.putExtra(BarcodeString, barcode.displayValue);
+            setResult(QRCODE_STRING_SUCCESS, data);
+        } else {
+            data.putExtra(BarcodeObject, barcode);
+            setResult(QRCODE_SUCCESS, data);
+        }
+
         finish();
     }
 }

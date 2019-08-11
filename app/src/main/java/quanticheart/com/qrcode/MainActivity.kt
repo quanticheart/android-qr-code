@@ -3,8 +3,6 @@ package quanticheart.com.qrcode
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.gms.common.api.CommonStatusCodes
-import com.google.android.gms.vision.barcode.Barcode
 import kotlinx.android.synthetic.main.activity_main.*
 import quanticheart.com.qrcode2.BarcodeCaptureActivity
 
@@ -16,8 +14,9 @@ class MainActivity : AppCompatActivity() {
 
         btn.setOnClickListener {
             val intent = Intent(applicationContext, BarcodeCaptureActivity::class.java)
-//            intent.putExtra(BarcodeCaptureActivity.AutoFocus, true)
+            intent.putExtra(BarcodeCaptureActivity.AutoFocus, true)
 //            intent.putExtra(BarcodeCaptureActivity.UseFlash, true)
+            intent.putExtra(BarcodeCaptureActivity.OnlyQRCode, true)
             startActivityForResult(intent, 10)
         }
 
@@ -25,13 +24,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == 10) {
-            if (resultCode == CommonStatusCodes.SUCCESS) {
+            /* if (resultCode == BarcodeCaptureActivity.QRCODE_SUCCESS) {
+                 if (data != null) {
+                     val barcode = data.getParcelableExtra<BarcodeData>(BarcodeCaptureActivity.BarcodeObject)
+                     val p = barcode.cornerPoints
+                     textView.text = barcode.displayValue
+                 } else
+                     textView.text = "Not result"
+             } else*/
+            if (resultCode == BarcodeCaptureActivity.QRCODE_STRING_SUCCESS) {
                 if (data != null) {
-                    val barcode = data.getParcelableExtra<Barcode>(BarcodeCaptureActivity.BarcodeObject)
-                    val p = barcode.cornerPoints
-                    textView.text = barcode.displayValue
+                    val barcode = data.getStringExtra(BarcodeCaptureActivity.BarcodeString)
+                    textView.text = barcode
                 } else
-                    textView.text = "no"
+                    textView.text = "Not result"
             } else {
 //                Log.e(LOG, String.format(getString(R.string.barcode_error_format),
 //                    CommonStatusCodes.getStatusCodeString(resultCode)))}
