@@ -1,7 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
-          package="quanticheart.com.qrcode2">
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <application android:supportsRtl="true" tools:replace="android:theme" android:theme="@style/AppThemeCamera">
-        <activity android:name=".BarcodeCaptureActivity"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="quanticheart.com.qrcode2">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <application
+        android:supportsRtl="true"
+        android:theme="@style/AppThemeCamera"
+        tools:replace="android:theme">
+        <activity
+            android:name=".BarcodeCaptureActivity"
+            android:screenOrientation="portrait" />
     </application>
 </manifest>

@@ -41,15 +41,15 @@ import androidx.core.app.ActivityCompat;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.List;
 
 import quanticheart.com.qrcode2.ui.camera.CameraSource;
 import quanticheart.com.qrcode2.ui.camera.CameraSourcePreview;
-import quanticheart.com.qrcode2.ui.camera.GraphicOverlay;
 
 /**
  * Activity for the multi-tracker app.  This app detects barcodes and displays the value with the
@@ -82,11 +82,11 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
 
     private CameraSource mCameraSource;
     private CameraSourcePreview mPreview;
-    private GraphicOverlay<BarcodeGraphic> mGraphicOverlay;
+//    private GraphicOverlay<BarcodeGraphic> mGraphicOverlay;
 
     // helper objects for detecting taps and pinches.
-    private ScaleGestureDetector scaleGestureDetector;
-    private GestureDetector gestureDetector;
+//    private ScaleGestureDetector scaleGestureDetector;
+//    private GestureDetector gestureDetector;
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -97,12 +97,12 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         setContentView(R.layout.barcode_capture);
 
         mPreview = findViewById(R.id.preview);
-        mGraphicOverlay = findViewById(R.id.graphicOverlay);
+//        mGraphicOverlay = findViewById(R.id.graphicOverlay);
 
         // read parameters from the intent used to launch the activity.
-        boolean autoFocus = getIntent().getBooleanExtra(AutoFocus, false);
+        boolean autoFocus = getIntent().getBooleanExtra(AutoFocus, true);
         boolean useFlash = getIntent().getBooleanExtra(UseFlash, false);
-        returnQRCodeString = getIntent().getBooleanExtra(OnlyQRCode, false);
+        returnQRCodeString = getIntent().getBooleanExtra(OnlyQRCode, true);
 
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
@@ -113,8 +113,8 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
             requestCameraPermission();
         }
 
-        gestureDetector = new GestureDetector(this, new CaptureGestureListener());
-        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
+//        gestureDetector = new GestureDetector(this, new CaptureGestureListener());
+//        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
 
 //        Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
 //                Snackbar.LENGTH_LONG)
@@ -154,15 +154,6 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
 //                .show();
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent e) {
-        boolean b = scaleGestureDetector.onTouchEvent(e);
-
-        boolean c = gestureDetector.onTouchEvent(e);
-
-        return b || c || super.onTouchEvent(e);
-    }
-
     /**
      * Creates and starts the camera.  Note that this uses a higher resolution in comparison
      * to other detection examples to enable the barcode detector to detect small barcodes
@@ -175,14 +166,29 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
     private void createCameraSource(boolean autoFocus, boolean useFlash) {
         Context context = getApplicationContext();
 
+        int numCameras = Camera.getNumberOfCameras();
+        int width = 0;
+        int height = 0;
+        for (int i = 0; i < numCameras; i++) {
+            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+            Camera.getCameraInfo(i, cameraInfo);
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                Camera camera = Camera.open(i);
+                Camera.Parameters cameraParams = camera.getParameters();
+                List<Camera.Size> sizes = cameraParams.getSupportedPreviewSizes();
+                width = sizes.get(0).width;
+                height = sizes.get(0).height;
+            }
+        }
+
         // A barcode detector is created to track barcodes.  An associated multi-processor instance
         // is set to receive the barcode detection results, track the barcodes, and maintain
         // graphics for each barcode on screen.  The factory is used by the multi-processor to
         // create a separate tracker instance for each barcode.
         BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(context).build();
-        BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay, this);
-        barcodeDetector.setProcessor(
-                new MultiProcessor.Builder<>(barcodeFactory).build());
+//        BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay, this);
+//        barcodeDetector.setProcessor(
+//                new MultiProcessor.Builder<>(barcodeFactory).build());
 
         if (!barcodeDetector.isOperational()) {
             // Note: The first time that an app using the barcode or face API is installed on a
@@ -212,7 +218,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         // at long distances.
         CameraSource.Builder builder = new CameraSource.Builder(getApplicationContext(), barcodeDetector)
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedPreviewSize(1600, 1024)
+//                .setRequestedPreviewSize(width, height)
                 .setRequestedFps(15.0f);
 
         mCameraSource = builder
@@ -320,7 +326,26 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
 
         if (mCameraSource != null) {
             try {
-                mPreview.start(mCameraSource, mGraphicOverlay);
+
+                Field[] declaredFields = CameraSource.class.getDeclaredFields();
+
+                for (Field field : declaredFields) {
+                    if (field.getType() == Camera.class) {
+                        field.setAccessible(true);
+                        try {
+                            Camera camera = (Camera) field.get(mCameraSource);
+                            if (camera != null) {
+                                Camera.Parameters params= camera.getParameters();
+                                camera.setDisplayOrientation(0);
+                            }
+                        } catch (IllegalAccessException | RuntimeException e) {
+                            e.getMessage();
+                        }
+
+                        break;
+                    }
+                }
+                mPreview.start(mCameraSource);
             } catch (IOException e) {
                 Log.e(TAG, "Unable to start camera source.", e);
                 mCameraSource.release();
@@ -339,28 +364,28 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
     private boolean onTap(float rawX, float rawY) {
         // Find tap point in preview frame coordinates.
         int[] location = new int[2];
-        mGraphicOverlay.getLocationOnScreen(location);
-        float x = (rawX - location[0]) / mGraphicOverlay.getWidthScaleFactor();
-        float y = (rawY - location[1]) / mGraphicOverlay.getHeightScaleFactor();
+//        mGraphicOverlay.getLocationOnScreen(location);
+//        float x = (rawX - location[0]) / mGraphicOverlay.getWidthScaleFactor();
+//        float y = (rawY - location[1]) / mGraphicOverlay.getHeightScaleFactor();
 
         // Find the barcode whose center is closest to the tapped point.
         Barcode best = null;
         float bestDistance = Float.MAX_VALUE;
-        for (BarcodeGraphic graphic : mGraphicOverlay.getGraphics()) {
-            Barcode barcode = graphic.getBarcode();
-            if (barcode.getBoundingBox().contains((int) x, (int) y)) {
-                // Exact hit, no need to keep looking.
-                best = barcode;
-                break;
-            }
-            float dx = x - barcode.getBoundingBox().centerX();
-            float dy = y - barcode.getBoundingBox().centerY();
-            float distance = (dx * dx) + (dy * dy);  // actually squared distance
-            if (distance < bestDistance) {
-                best = barcode;
-                bestDistance = distance;
-            }
-        }
+//        for (BarcodeGraphic graphic : mGraphicOverlay.getGraphics()) {
+//            Barcode barcode = graphic.getBarcode();
+//            if (barcode.getBoundingBox().contains((int) x, (int) y)) {
+//                // Exact hit, no need to keep looking.
+//                best = barcode;
+//                break;
+//            }
+//            float dx = x - barcode.getBoundingBox().centerX();
+//            float dy = y - barcode.getBoundingBox().centerY();
+//            float distance = (dx * dx) + (dy * dy);  // actually squared distance
+//            if (distance < bestDistance) {
+//                best = barcode;
+//                bestDistance = distance;
+//            }
+//        }
 
         if (best != null) {
             callbackIntent(best);
